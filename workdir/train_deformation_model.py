@@ -8,6 +8,22 @@ from mpl_toolkits.mplot3d import Axes3D
 import time
 # from _tkinter import TclError
 
+# CUDA（GPU）が利用可能か確認し、設定
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        # GPUメモリの使用量を動的に設定
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # メモリ増加設定が完了する前に実行するとエラーになる可能性がある
+        print(e)
+else:
+    print("GPUは利用できません。CPUで実行します。")
+
+
 random.seed(42)
 
 # --- 1. データのロードと前処理 ---
@@ -222,7 +238,7 @@ def main():
     history = model.fit(
         [X_train, adj_matrix_train],
         y_train,
-        epochs=10000,
+        epochs=500,
         batch_size=100,
         validation_data=([X_test_split, adj_matrix_test_split], y_test_split)
     )

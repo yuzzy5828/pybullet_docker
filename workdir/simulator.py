@@ -87,10 +87,10 @@ def collect_quasi_static_data(rope_links):
     moved_link_indices = []
 
     # 力の強さは一定の微小な値に設定
-    force_gain = 1.0
+    force_gain = 0.5
     
     # データを取得するステップ数は固定
-    total_steps = 20000
+    total_steps = 200
     
     print(f"\n--- 紐の変形データ収集開始 ---")
     
@@ -165,7 +165,7 @@ def main():
     collected_data = collect_quasi_static_data(rope)
 
     # データをファイルに保存
-    output_filename = "rope_deformation_data_friction_1.3.npz"
+    output_filename = "rope_deformation_data_friction_1.3_test.npz"
     np.savez_compressed(output_filename, 
                         pre_state=collected_data['pre_state'], 
                         post_state=collected_data['post_state'],

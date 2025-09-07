@@ -19,6 +19,8 @@ def load_data(filename):
 def normalize_data(loaded_data):
     """
     pre_state と post_state のデータの重心からの相対位置を計算し、正規化する。
+    
+    正規化を最小-最大スケーリングに変更しました。
     """
     pre_state = loaded_data['pre_state']
     post_state = loaded_data['post_state']
@@ -31,41 +33,42 @@ def normalize_data(loaded_data):
     pre_state_rel = pre_state - pre_state_center_of_mass
     post_state_rel = post_state - post_state_center_of_mass
     
-    # 相対位置の各軸ごとの平均と標準偏差を計算
-    mean = np.mean(pre_state_rel, axis=(0, 1))
-    std = np.std(pre_state_rel, axis=(0, 1))
+    # 最小-最大スケーリングのために、相対位置の最小値と最大値を計算
+    min_val = np.min(pre_state_rel, axis=(0, 1))
+    max_val = np.max(pre_state_rel, axis=(0, 1))
     
-    # ゼロ除算を避けるための微小な値を加える
-    std[std == 0] = 1e-8
+    # 分母がゼロになるのを避ける
+    range_val = max_val - min_val
+    range_val[range_val == 0] = 1e-8
     
-    print("\n--- 正規化に使用する統計量 ---")
-    print(f"各軸の平均 (mean): {mean}")
-    print(f"各軸の標準偏差 (std): {std}")
+    print("\n--- 正規化に使用する統計量（Min-Max Scaling） ---")
+    print(f"各軸の最小値 (min): {min_val}")
+    print(f"各軸の最大値 (max): {max_val}")
 
-    # 相対位置データを同じ統計量で標準化
-    pre_state_norm = (pre_state_rel - mean) / std
-    post_state_norm = (post_state_rel - mean) / std
+    # 相対位置データを最小-最大スケーリングで正規化
+    pre_state_norm = 2 * ((pre_state_rel - min_val) / range_val) - 1
+    post_state_norm = 2 * ((post_state_rel - min_val) / range_val) - 1
     
     # applied_impulses と rope_links はそのまま使用
     applied_impulses = loaded_data['applied_impulses']
     rope_links = loaded_data['rope_links']
     moved_link_index = loaded_data['moved_link_index']
 
-    return pre_state_norm, post_state_norm, applied_impulses, rope_links, moved_link_index, mean, std
+    return pre_state_norm, post_state_norm, applied_impulses, rope_links, moved_link_index, min_val, max_val
 
 # --- 3. メイン処理 ---
 if __name__ == "__main__":
     # 正規化したい元のファイル名
-    filename = 'rope_deformation_data_friction_1.3.npz'
+    filename = 'rope_deformation_data_friction_1.3_test.npz'
     
     # データをロード
     data = load_data(filename)
     if data is not None:
         # 正規化を実行
-        pre_norm, post_norm, impulses, rope_links, moved_link_index, mean, std = normalize_data(data)
+        pre_norm, post_norm, impulses, rope_links, moved_link_index, min_val, max_val = normalize_data(data)
         
         # 正規化されたデータを保存する新しいファイル名
-        output_filename = 'rope_deformation_data_friction_1.3_normalized.npz'
+        output_filename = '/srv/workdir/rope_deformation_data_friction_1.3_test_normalized.npz'
         
         # 正規化されたデータと、元のデータの一部（applied_impulses, moved_link_index, rope_links）
         # および正規化に使用した統計量（mean, std）を新しいnpzファイルに保存
@@ -76,7 +79,7 @@ if __name__ == "__main__":
             applied_impulses=impulses,
             moved_link_index=moved_link_index,
             rope_links=rope_links,
-            pre_state_mean=mean,
-            pre_state_std=std
+            pre_state_min=min_val,
+            pre_state_max=max_val
         )
         print(f"\n正規化されたデータが '{output_filename}' に保存されました。")
